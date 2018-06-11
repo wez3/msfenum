@@ -1,4 +1,4 @@
-# Metasploit auto enumeration script (msfenum)
+# Metasploit auto auxiliary script (msfenum)
 
 Msfenum simplifies running multiple auxiliary modules on a specific set of targets. Running a low hanging fruit scan within a penetration test can be very useful, for example to find open shares or vulnerable services quickly. 
 
