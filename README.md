@@ -16,8 +16,6 @@ Feel free to share your useful auxiliary configuration for low hanging fruit sca
   * Contains all results after running the script
 * modules/
   * Contains all configuration per auxiliary module
-* temp/
-  * Just a temporary folder
 * config
   * Contains global configuration settings
 * msfenum.log
