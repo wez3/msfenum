@@ -75,7 +75,7 @@ def getSuccessful(currentTime):
 	Prints all [+] entries in the log in context. 
 	"""
 	logging.info('--- Summary of discovered results ---')
-	for file in os.listdir('/logs/'+ currentTime):
+	for file in os.listdir('logs/'+ currentTime):
 		if file.endswith(".log"):
 			logging.info('[Module]' + file.rsplit('.', 1)[0])
 			logging.info(system('grep [+] logs/' + currentTime + '/' + file))
