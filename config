@@ -1,5 +1,5 @@
 {
-  "defaultthreads": 256,
+  "defaultthreads": 10,
   "modules": [
     "auxiliary/scanner/smb/smb_version",
     "auxiliary/scanner/smb/smb_enumshares",
