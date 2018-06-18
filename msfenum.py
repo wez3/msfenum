@@ -60,7 +60,6 @@ def generateRcs(targets, threads, currentTime, config):
 	rcoutput.close()
 
 
-
 def runRcs(currentTime):
 	"""
 	Runs metasploit commands and prints output
@@ -115,7 +114,7 @@ if __name__ == '__main__':
 	targets = []
 	currentTime = int(time.time())
 	currentDir = 'logs/' + str(currentTime)
-	threads = 10 # default set to 10
+	threads = None
 
 	# Define logger settings
 	logging.basicConfig(filename=logfile, level=logging.INFO)
