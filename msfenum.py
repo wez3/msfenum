@@ -6,16 +6,21 @@ from sys import exit
 
 modulesfolder = "modules"
 
-# Load the config
 def loadConfig():
+	"""
+	Loads the configuration files
+	"""
 	try:
 		with open('config') as f:
 			return json.load(f)
 	except:
 		logging.error("Failed to load config")
 
-# Valid the config
+
 def validateModuleConfig(modules, modulesconfig):
+	"""
+	Validates the module cofig. 
+	"""
 	missing = []
 	for module in modules:
 		modulename = module.split("/")[-1]
@@ -24,8 +29,11 @@ def validateModuleConfig(modules, modulesconfig):
 	if missing:
 		logging.warning("missing the following module(s): " + "".path.join(missing))
 
-# Generate a RC file
+
 def generateRcs(targets, threads, currentTime, config):
+	"""
+	Compiles all module configurations into one RC file. 
+	"""
 	postmodule = "spool off\n\n"
 	premodule = "spool logs/"
 	modules = config.get('modules')
@@ -51,20 +59,34 @@ def generateRcs(targets, threads, currentTime, config):
 	rcoutput.write(rcfile)
 	rcoutput.close()
 
-# Run msfconsole
+
+
 def runRcs(currentTime):
+	"""
+	Runs metasploit commands and prints output
+	"""
 	logging.info('--- Starting msfconsole ---')
 	system('msfconsole -r logs/' + currentTime + '/file.rc')
 	logging.info('--- Msfconsole done ---')
 
-# Get a summary of discovered output
+
 def getSuccessful(currentTime):
+	"""
+	Prints all [+] entries in the log in context. 
+	"""
 	logging.info('--- Summary of discovered results ---')
-	logging.info(system('grep [+] logs/' + currentTime + '/*.log'))
+	for f in os.listdir('logs/'+ currentTime):
+		if f.endswith(".log"):
+			logging.info('[Module]' + f.rsplit('.', 1)[0])
+			logging.info(system('grep [+] logs/' + currentTime + '/' + f))
 	logging.info('--- Msfenum done ---')
 
-# We need some ascii
+
+
 def ascii():
+	"""
+	We need some ASCII
+	"""
 	print(r"""
 	             . --- .
 	           /        \
@@ -80,8 +102,9 @@ def ascii():
 	       ___\           /___
 	       ~;_  >- . . -<  _i~
 	          `'         `'
-	   By: @wez3forsec, @rikvduijn
-	""")
+	      By: @wez3forsec, @rikvduijn
+	      """)
+
 
 if __name__ == '__main__':
 	# Define variables
@@ -89,13 +112,13 @@ if __name__ == '__main__':
 	targets = []
 	currentTime = int(time.time())
 	currentDir = 'logs/' + str(currentTime)
-	threads = None
+	threads = 10 # default set to 10
 
 	# Define logger settings
 	logging.basicConfig(filename=logfile, level=logging.INFO)
 	logging.getLogger().addHandler(logging.StreamHandler())
-	logging.info('--- Starting msfenum ---')
 	ascii()
+	logging.info('--- Starting msfenum ---')
 
 	# Create current run directory
 	logging.info('[*] Saving msfenum logs in: ' + currentDir)
