@@ -2,14 +2,13 @@
 
 import logging, time, json, argparse, fileinput
 from os import listdir, system, path, makedirs
-from sys import exit, stdout
-
-modulesfolder = "modules"
+from sys import exit
 
 def loadConfig():
 	"""
-	Loads the configuration files
+	Loads the configuration file(s)
 	"""
+	
 	try:
 		with open('config') as f:
 			return json.load(f)
@@ -17,29 +16,31 @@ def loadConfig():
 		logging.error("Failed to load config")
 
 
-def validateModuleConfig(modules, modulesconfig):
+def validateModuleConfig(modules, modulesconfig, config):
 	"""
-	Validates the module cofig. 
+	Validates the module config
 	"""
+	modulesfolder = config.get('modulesfolder')
 	missing = []
 	for module in modules:
 		modulename = module.split("/")[-1]
 		if (not path.isfile(path.join(modulesfolder,modulename))):
-			missing.append(modulename)
+			missing.append(modulename)			
 	if missing:
 		logging.warning("missing the following module(s): " + "".path.join(missing))
 
 
 def generateRcs(targets, threads, currentTime, config):
 	"""
-	Compiles all module configurations into one RC file. 
+	Compiles all module configurations into one RC file
 	"""
+	modulesfolder = config.get('modulesfolder')
 	postmodule = "spool off\n\n"
-	premodule = "spool logs/"
+	premodule = "spool "+ config.get('logsfolder') + "/"
 	modules = config.get('modules')
 	modulesconfig = [f for f in listdir(modulesfolder) if path.isfile(path.join(modulesfolder, f))]
 
-	validateModuleConfig(modules, modulesconfig)
+	validateModuleConfig(modules, modulesconfig, config)
 
 	if threads == None:
 		threads = str(config.get('defaultthreads'))
@@ -55,33 +56,40 @@ def generateRcs(targets, threads, currentTime, config):
 				rcfile += open(path.join(modulesfolder,modulename),'r').read().replace("%IP%", target)
 				rcfile += postmodule
 	rcfile += "exit -y\n"
-	rcoutput = open('logs/' + currentTime + '/file.rc', 'w')
+	rcoutput = open(config.get('logsfolder') + '/' + currentTime + '/file.rc', 'w')
 	rcoutput.write(rcfile)
 	rcoutput.close()
 
 
-def runRcs(currentTime):
+def runRcs(currentTime, config):
 	"""
 	Runs metasploit commands and prints output
 	"""
+	logsfolder = config.get('logsfolder')
+	
 	logging.info('--- Starting msfconsole ---')
-	system('msfconsole -r logs/' + currentTime + '/file.rc')
+	system('msfconsole -r ' + logsfolder + '/' + currentTime + '/file.rc')
 	logging.info('--- Msfconsole done ---')
 
 
-def getSuccessful(currentTime):
+def getSuccessful(currentTime, config):
 	"""
 	Prints all [+] entries in the log in context. 
 	"""
+	logsfolder = config.get('logsfolder')
+	
 	logging.info('--- Summary of discovered results ---')
-	for f in listdir('logs/'+ currentTime):
+	for f in listdir(logsfolder + '/'+ currentTime):
+		
 		if f.endswith(".log"):
 			logging.info('- Module: ' + f.rsplit('.', 1)[0])
-			result = system('grep [+] logs/' + currentTime + '/' + f)
-			if result == 256: # No results end in a 256 print
+			result = system('grep [+] ' + logsfolder + '/' + currentTime + '/' + f)
+			
+			if result == 256 or result == 0: # No results end in a 256 or 0 print
 				logging.info("[-] No results")
 			else:
 				logging.info(result)
+				
 	logging.info('--- Msfenum done ---')
 
 
@@ -109,11 +117,15 @@ def ascii():
 
 
 if __name__ == '__main__':
+	# Load config with default settings
+	config = loadConfig()
+	
 	# Define variables
+	logsfolder = config.get('logsfolder')
 	logfile= "msfenum.log"
 	targets = []
 	currentTime = int(time.time())
-	currentDir = 'logs/' + str(currentTime)
+	currentDir = logsfolder + '/' + str(currentTime)
 	threads = None
 
 	# Define logger settings
@@ -142,10 +154,10 @@ if __name__ == '__main__':
 	if args.threads is not None:
 		threads = args.threads
 
-	# Load config with default settings
-	config = loadConfig()
+	
 
 	# Run the script
 	generateRcs(targets, threads, str(currentTime), config)
-	runRcs(str(currentTime))
-	getSuccessful(str(currentTime))
+	runRcs(str(currentTime), config)
+	getSuccessful(str(currentTime), config)
+
