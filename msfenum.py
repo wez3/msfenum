@@ -13,7 +13,7 @@ def loadConfig():
 		with open('config') as f:
 			return json.load(f)
 	except:
-		log.error("[!] Failed to load config")
+		log.error("\033[0;31m\033[1m[!]\033[0m Failed to load config")
 		exit(1)
 
 
@@ -28,10 +28,10 @@ def validateModuleConfig(modules, modulesconfig, config):
 		if (not path.isfile(path.join(modulesfolder,modulename))):
 			missing.append(modulename)			
 	if missing:
-		log.warning("[*] missing the following module(s): " + "".path.join(missing))
+		log.warning("missing the following module(s): " + "".path.join(missing))
 
 
-def generateRcs(targets, threads, currentTime, config):
+def generateRcs(targets, threads, projectName, config):
 	"""
 	Compiles all module configurations into one RC file
 	"""
@@ -52,44 +52,44 @@ def generateRcs(targets, threads, currentTime, config):
 			modulename = module.split("/")[-1]
 			if (path.isfile(path.join(modulesfolder,modulename))):
 				rcfile += "setg threads " + str(threads) + "\n"
-				rcfile += premodule + currentTime + "/" + modulename + ".log\n"
+				rcfile += premodule + projectName + "/" + modulename + ".log\n"
 				rcfile += "use " + module + "\n"
 				rcfile += open(path.join(modulesfolder,modulename),'r').read().replace("%IP%", target)
 				rcfile += postmodule
 	rcfile += "exit -y\n"
-	rcoutput = open(config.get('logsfolder') + '/' + currentTime + '/file.rc', 'w')
+	rcoutput = open(config.get('logsfolder') + '/' + projectName + '/file.rc', 'w')
 	rcoutput.write(rcfile)
 	rcoutput.close()
 
 
-def runRcs(currentTime, config):
+def runRcs(projectName, config):
 	"""
 	Runs metasploit commands and prints output
 	"""
 	logsfolder = config.get('logsfolder')
 	
 	log.critical('--- Starting msfconsole ---')
-	system('msfconsole -r ' + logsfolder + '/' + currentTime + '/file.rc')
+	system('msfconsole -r ' + logsfolder + '/' + projectName + '/file.rc')
 	log.info('\n--- Msfconsole done ---\n')
 
 
-def getSuccessful(currentTime, config):
+def getSuccessful(projectName, config):
 	"""
 	Prints all [+] entries in the log in context. 
 	"""
 	logsfolder = config.get('logsfolder')
 	
 	log.critical('--- Summary of discovered results ---')
-	for f in listdir(logsfolder + '/'+ currentTime):
+	for f in listdir(logsfolder + '/'+ projectName):
 		
 		if f.endswith(".log"):
 			log.warning('- Module: ' + f.rsplit('.', 1)[0])
-			result = system('grep [+] ' + logsfolder + '/' + currentTime + '/' + f)
+			result = system('grep [+] ' + logsfolder + '/' + projectName + '/' + f)
 			
 			if result == 256 or result == 0: # No results end in a 256 or 0 print
 				log.debug("No results")
 			else:
-				log.critical(re.sub(r"\[\+]", "\033[0;32m\033[1m[+]\033[1m\033[0m",result))
+				log.critical(re.sub(r"\[\+]", "\033[0;32m\033[1m[+]\033[0m",result))
 				
 	log.critical('--- Msfenum done ---')
 
@@ -100,10 +100,10 @@ class logFormat(logging.Formatter):
 	"""
 	
 	crit_fmt = "%(msg)s" # no format
-	err_fmt  = "\033[0;33m\033[1m[!]\033[1m\033[0m %(msg)s" # bold yellow [!]
-	warn_fmt = "\033[0;34m\033[1m[*]\033[1m\033[0m %(msg)s" # bold blue [*]
-	info_fmt = "\033[0;32m\033[1m[+]\033[1m\033[0m %(msg)s" # bold green [+]
-	dbg_fmt  = "\033[0;31m\033[1m[-]\033[1m\033[0m %(msg)s" # bold red color [-]
+	err_fmt  = "\033[0;33m\033[1m[!]\033[0m %(msg)s" # bold yellow [!]
+	warn_fmt = "\033[0;34m\033[1m[*]\033[0m %(msg)s" # bold blue [*]
+	info_fmt = "\033[0;32m\033[1m[+]\033[0m %(msg)s" # bold green [+]
+	dbg_fmt  = "\033[0;31m\033[1m[-]\033[0m %(msg)s" # bold red [-]
 
 
 	def __init__(self, fmt="%(levelno)s: %(msg)s"):
@@ -170,10 +170,9 @@ if __name__ == '__main__':
 	
 	# Define variables
 	logsfolder = config.get('logsfolder')
+	projectName = None
 	logfile= "msfenum.log"
 	targets = []
-	currentTime = int(time.time())
-	currentDir = logsfolder + '/' + str(currentTime)
 	threads = None
 
 	# Define logger settings
@@ -186,31 +185,38 @@ if __name__ == '__main__':
 
 	# Parse command line arguments
 	parser = argparse.ArgumentParser(description="Metasploit framework auto enumeration script")
-	parser.add_argument('-t', '--threads', nargs='?', help="Number of threads", type=int)
+	parser.add_argument('-t', '--threads', nargs='?', help='Number of threads', type=int, name='threads')
+	parser.add_argument('-p', '--project', nargs='?', help='Project name', type=str, name='project')
 	parser.add_argument('files', metavar='TARGET_FILE', help='File containing targets')
 	args = parser.parse_args()
 
 	# Check if target file is accessible and load it
 	if not path.isfile(args.files):
-		exit('[!] Target file does not exist')
+		exit('\033[0;31m\033[1m[!]\033[0m Target file does not exist')
 	for target in fileinput.input(files=args.files if len(args.files) > 0 else ('-', )):
 		targets.append(target)
 
 	# Check if threads are specified.
 	if args.threads is not None:
 		threads = args.threads
+		
+	if args.project is None:
+		projectName = str(int(time.time()))
+	else:
+		projectName = args.project		
 
 	log.critical('--- Starting msfenum ---')
 
 	# Create current run directory
 	try:
+		currentDir = logsfolder + '/' + projectName
 		makedirs(currentDir)
 		log.warn('Saving msfenum logs in: ' + currentDir)
 	except:
-		exit('[!] Could not create directory structure')
+		exit('\033[0;31m\033[1m[!]\033[0m Could not create directory structure')
 
 	# Run the script
-	generateRcs(targets, threads, str(currentTime), config)
-	runRcs(str(currentTime), config)
-	getSuccessful(str(currentTime), config)
-
+	generateRcs(targets, threads, projectName, config)
+	runRcs(projectName, config)
+	getSuccessful(projectName, config)
+	
