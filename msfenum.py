@@ -185,8 +185,8 @@ if __name__ == '__main__':
 
 	# Parse command line arguments
 	parser = argparse.ArgumentParser(description="Metasploit framework auto enumeration script")
-	parser.add_argument('-t', '--threads', nargs='?', help='Number of threads', type=int, name='threads')
-	parser.add_argument('-p', '--project', nargs='?', help='Project name', type=str, name='project')
+	parser.add_argument('-t', '--threads', nargs='?', help='Number of threads', type=int)
+	parser.add_argument('-p', '--project', nargs='?', help='Project name', type=str)
 	parser.add_argument('files', metavar='TARGET_FILE', help='File containing targets')
 	args = parser.parse_args()
 
