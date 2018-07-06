@@ -19,6 +19,10 @@
     "auxiliary/scanner/postgres/postgres_login",
     "auxiliary/scanner/sip/options",
     "auxiliary/scanner/sip/options_tcp",
-    "auxiliary/scanner/snmp/snmp_enum"
-  ]
+    "auxiliary/scanner/snmp/snmp_enum",
+    "auxiliary/scanner/smtp/smtp_relay"
+  ],
+  "settings": {
+    "auxiliary/scanner/smtp/smtp_relay": { "MAILTO": "CHANGEME", "MAILFROM": "CHANGEME" }
+  }
 }

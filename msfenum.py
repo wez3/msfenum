@@ -8,12 +8,12 @@ def loadConfig():
 	"""
 	Loads the configuration file(s)
 	"""
-	
+
 	try:
 		with open('config') as f:
 			return json.load(f)
-	except:
-		log.error("\033[0;31m\033[1m[!]\033[0m Failed to load config")
+	except Exception as e:
+		log.error("\033[0;31m\033[1m[!]\033[0m Failed to load config\nException:\n" + str(e))
 		exit(1)
 
 
@@ -26,7 +26,7 @@ def validateModuleConfig(modules, modulesconfig, config):
 	for module in modules:
 		modulename = module.split("/")[-1]
 		if (not path.isfile(path.join(modulesfolder,modulename))):
-			missing.append(modulename)			
+			missing.append(modulename)
 	if missing:
 		log.warning("missing the following module(s): " + "".path.join(missing))
 
@@ -50,24 +50,38 @@ def generateRcs(targets, threads, projectName, config):
 	for target in targets:
 		for module in modules:
 			modulename = module.split("/")[-1]
-			if (path.isfile(path.join(modulesfolder,modulename))):
-				rcfile += "setg threads " + str(threads) + "\n"
-				rcfile += premodule + projectName + "/" + modulename + ".log\n"
-				rcfile += "use " + module + "\n"
-				rcfile += open(path.join(modulesfolder,modulename),'r').read().replace("%IP%", target)
-				rcfile += postmodule
+			settings = config.get('settings')
+			try:
+				run = True
+				customSettings = True
+				for key, value in settings[module].iteritems():
+					if value == "CHANGEME":
+						run = False
+				log.info("Custom settings defined for module " + module)
+			except:
+				run = True
+				customSettings = False
+			if run == True:
+				if (path.isfile(path.join(modulesfolder,modulename))):
+					rcfile += "setg threads " + str(threads) + "\n"
+					rcfile += premodule + projectName + "/" + modulename + ".log\n"
+					rcfile += "use " + module + "\n"
+					if customSettings == True:
+						for key, value in settings[module].iteritems():
+							rcfile += "set " + key + " " + value + "\n"
+					rcfile += open(path.join(modulesfolder,modulename),'r').read().replace("%IP%", target)
+					rcfile += postmodule
 	rcfile += "exit -y\n"
 	rcoutput = open(config.get('logsfolder') + '/' + projectName + '/file.rc', 'w')
 	rcoutput.write(rcfile)
 	rcoutput.close()
-
 
 def runRcs(projectName, config):
 	"""
 	Runs metasploit commands and prints output
 	"""
 	logsfolder = config.get('logsfolder')
-	
+
 	log.critical('--- Starting msfconsole ---')
 	system('msfconsole -r ' + logsfolder + '/' + projectName + '/file.rc')
 	log.info('\n--- Msfconsole done ---\n')
@@ -78,19 +92,19 @@ def getSuccessful(projectName, config):
 	Prints all [+] entries in the log in context. 
 	"""
 	logsfolder = config.get('logsfolder')
-	
+
 	log.critical('--- Summary of discovered results ---')
 	for f in listdir(logsfolder + '/'+ projectName):
-		
+
 		if f.endswith(".log"):
 			log.warning('- Module: ' + f.rsplit('.', 1)[0])
 			result = system('grep [+] ' + logsfolder + '/' + projectName + '/' + f)
-			
+
 			if result == 256 or result == 0: # No results end in a 256 or 0 print
 				log.debug("No results")
 			else:
 				log.critical(re.sub(r"\[\+]", "\033[0;32m\033[1m[+]\033[0m",result))
-				
+
 	log.critical('--- Msfenum done ---')
 
 
@@ -98,7 +112,7 @@ class logFormat(logging.Formatter):
 	"""
 	Custom logging formatter
 	"""
-	
+
 	crit_fmt = "%(msg)s" # no format
 	err_fmt  = "\033[0;33m\033[1m[!]\033[0m %(msg)s" # bold yellow [!]
 	warn_fmt = "\033[0;34m\033[1m[*]\033[0m %(msg)s" # bold blue [*]
@@ -111,7 +125,7 @@ class logFormat(logging.Formatter):
 
 
 	def format(self, record):
-		
+
 		# Save the original format configured by the user
 		# when the logger formatter was instantiated
 		format_orig = self._fmt
@@ -125,12 +139,12 @@ class logFormat(logging.Formatter):
 
 		elif record.levelno == logging.WARN:
 			self._fmt = logFormat.warn_fmt
-		
+
 		elif record.levelno == logging.ERROR:
 			self._fmt = logFormat.err_fmt
-			
+
 		elif record.levelno == logging.CRITICAL:
-			self._fmt = logFormat.crit_fmt			
+			self._fmt = logFormat.crit_fmt
 
 		# Call the original formatter class to do the grunt work
 		result = logging.Formatter.format(self, record)
@@ -165,23 +179,23 @@ def ascii():
 
 
 if __name__ == '__main__':
+	# Define logger settings
+	logfile= "msfenum.log"
+        logging.basicConfig(filename=logfile, level=logging.DEBUG)
+        log = logging.getLogger()
+        handler = logging.StreamHandler()
+        handler.setFormatter(logFormat())
+        log.addHandler(handler)
+        ascii()
+
 	# Load config with default settings
 	config = loadConfig()
-	
+
 	# Define variables
 	logsfolder = config.get('logsfolder')
 	projectName = None
-	logfile= "msfenum.log"
 	targets = []
 	threads = None
-
-	# Define logger settings
-	logging.basicConfig(filename=logfile, level=logging.DEBUG)
-	log = logging.getLogger()
-	handler = logging.StreamHandler()
-	handler.setFormatter(logFormat())
-	log.addHandler(handler)
-	ascii()
 
 	# Parse command line arguments
 	parser = argparse.ArgumentParser(description="Metasploit framework auto enumeration script")
@@ -199,11 +213,11 @@ if __name__ == '__main__':
 	# Check if threads are specified.
 	if args.threads is not None:
 		threads = args.threads
-		
+
 	if args.project is None:
 		projectName = str(int(time.time()))
 	else:
-		projectName = args.project		
+		projectName = args.project
 
 	log.critical('--- Starting msfenum ---')
 
@@ -219,4 +233,3 @@ if __name__ == '__main__':
 	generateRcs(targets, threads, projectName, config)
 	runRcs(projectName, config)
 	getSuccessful(projectName, config)
-	
