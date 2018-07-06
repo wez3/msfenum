@@ -57,7 +57,10 @@ def generateRcs(targets, threads, projectName, config):
 				for key, value in settings[module].iteritems():
 					if value == "CHANGEME":
 						run = False
-				log.info("Custom settings defined for module " + module)
+				if run == True:
+					log.info("Custom settings defined for module " + module)
+				else:
+					log.warn("Custom settings not defined for module " + module)
 			except:
 				run = True
 				customSettings = False
