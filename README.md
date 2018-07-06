@@ -8,8 +8,9 @@ Feel free to share your useful auxiliary configuration for low hanging fruit sca
 
 ## Usage
 
-``python msfenum.py [-h] [-t [THREADS]] TARGET_FILE``
+Modify the "config" file. Change the CHANGEME values in the "settings" key, otherwise those modules will not run.
 
+``python msfenum.py [-h] [-t [THREADS]] [-p [PROJECT]] TARGET_FILE``
 
 ## Structure:
 * logs/
@@ -22,3 +23,7 @@ Feel free to share your useful auxiliary configuration for low hanging fruit sca
   * Some logging generated when running msfenum.py
 * msfenum.py
   * The main script
+
+## Result example
+
+![alt text](https://forsec.nl/wp-content/uploads/2018/07/msfenum_results.png)
