@@ -12,6 +12,10 @@ Modify the "config" file. Change the CHANGEME values in the "settings" key, othe
 
 ``python msfenum.py [-h] [-t [THREADS]] [-p [PROJECT]] TARGET_FILE``
 
+  -t [THREADS], Number of threads
+  
+  -p [PROJECT], Project name
+
 ## Structure:
 * logs/
   * Contains all results after running the script
