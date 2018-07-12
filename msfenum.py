@@ -179,7 +179,7 @@ def ascii():
 if __name__ == '__main__':
 	# Define logger settings
 	currentPath = path.dirname(path.abspath(__file__))
-	logfile= "msfenum.log"
+	logfile= "{}/msfenum.log".format(currentPath)
         logging.basicConfig(filename=logfile, level=logging.DEBUG)
         log = logging.getLogger()
         handler = logging.StreamHandler()
