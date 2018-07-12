@@ -4,44 +4,43 @@ import logging, time, json, argparse, fileinput, re
 from os import listdir, system, path, makedirs
 from sys import exit
 
-def loadConfig():
+def loadConfig(currentPath):
 	"""
 	Loads the configuration file(s)
 	"""
-
 	try:
-		with open('config') as f:
+		with open(currentPath + '/config') as f:
 			return json.load(f)
 	except Exception as e:
-		log.error("\033[0;31m\033[1m[!]\033[0m Failed to load config\nException:\n" + str(e))
+		log.error("\033[0;31m\033[1m[!]\033[0m Failed to load config\nException: {}\n".format(str(e)))
 		exit(1)
 
 
-def validateModuleConfig(modules, modulesconfig, config):
+def validateModuleConfig(modules, modulesconfig, config, currentPath):
 	"""
 	Validates the module config
 	"""
-	modulesfolder = config.get('modulesfolder')
+	modulesfolder = "{}/{}".format(currentPath, config.get('modulesfolder'))
 	missing = []
 	for module in modules:
 		modulename = module.split("/")[-1]
-		if (not path.isfile(path.join(modulesfolder,modulename))):
+		if (not path.isfile(path.join(modulesfolder, modulename))):
 			missing.append(modulename)
 	if missing:
-		log.warning("missing the following module(s): " + "".path.join(missing))
+		log.warning("Missing the following module(s): {}".format(", ".join(missing)))
 
 
-def generateRcs(targets, threads, projectName, config):
+def generateRcs(targets, threads, projectName, config, currentPath, logsfolder):
 	"""
 	Compiles all module configurations into one RC file
 	"""
-	modulesfolder = config.get('modulesfolder')
+	modulesfolder = "{}/{}".format(currentPath, config.get('modulesfolder'))
 	postmodule = "spool off\n\n"
-	premodule = "spool "+ config.get('logsfolder') + "/"
+	premodule = "spool {}/".format(logsfolder)
 	modules = config.get('modules')
 	modulesconfig = [f for f in listdir(modulesfolder) if path.isfile(path.join(modulesfolder, f))]
 
-	validateModuleConfig(modules, modulesconfig, config)
+	validateModuleConfig(modules, modulesconfig, config, currentPath)
 
 	if threads == None:
 		threads = str(config.get('defaultthreads'))
@@ -58,50 +57,46 @@ def generateRcs(targets, threads, projectName, config):
 					if value == "CHANGEME":
 						run = False
 				if run == True:
-					log.info("Custom settings defined for module " + module)
+					log.info("Custom settings defined for module {}".format(module))
 				else:
-					log.warn("Custom settings not defined for module " + module)
+					log.warn("Custom settings not defined for module {}".format(module))
 			except:
 				run = True
 				customSettings = False
 			if run == True:
 				if (path.isfile(path.join(modulesfolder,modulename))):
-					rcfile += "setg threads " + str(threads) + "\n"
-					rcfile += premodule + projectName + "/" + modulename + ".log\n"
-					rcfile += "use " + module + "\n"
+					rcfile += "setg threads {}\n".format(str(threads))
+					rcfile += "{}{}/{}.log\n".format(premodule, projectName, modulename)
+					rcfile += "use {}\n".format(module)
 					if customSettings == True:
 						for key, value in settings[module].iteritems():
-							rcfile += "set " + key + " " + value + "\n"
+							rcfile += "set {} {}\n".format(key, value)
 					rcfile += open(path.join(modulesfolder,modulename),'r').read().replace("%IP%", target)
 					rcfile += postmodule
 	rcfile += "exit -y\n"
-	rcoutput = open(config.get('logsfolder') + '/' + projectName + '/file.rc', 'w')
+	rcoutput = open("{}/{}/file.rc".format(logsfolder, projectName), 'w')
 	rcoutput.write(rcfile)
 	rcoutput.close()
 
-def runRcs(projectName, config):
+def runRcs(projectName, config, logsfolder):
 	"""
 	Runs metasploit commands and prints output
 	"""
-	logsfolder = config.get('logsfolder')
-
 	log.critical('--- Starting msfconsole ---')
-	system('msfconsole -r ' + logsfolder + '/' + projectName + '/file.rc')
+	system('msfconsole -r {}/{}/file.rc'.format(logsfolder, projectName))
 	log.info('\n--- Msfconsole done ---\n')
 
 
-def getSuccessful(projectName, config):
+def getSuccessful(projectName, config, logsfolder):
 	"""
 	Prints all [+] entries in the log in context. 
 	"""
-	logsfolder = config.get('logsfolder')
-
 	log.critical('--- Summary of discovered results ---')
-	for f in listdir(logsfolder + '/'+ projectName):
+	for f in listdir("{}/{}".format(logsfolder, projectName)):
 
 		if f.endswith(".log"):
-			log.warning('- Module: ' + f.rsplit('.', 1)[0])
-			result = system('grep [+] ' + logsfolder + '/' + projectName + '/' + f)
+			log.warning('- Module: {}'.format(f.rsplit('.', 1)[0]))
+			result = system('grep [+] {}/{}/{}'.format(logsfolder, projectName, f))
 
 			if result == 256 or result == 0: # No results end in a 256 or 0 print
 				log.debug("No results")
@@ -183,6 +178,7 @@ def ascii():
 
 if __name__ == '__main__':
 	# Define logger settings
+	currentPath = path.dirname(path.abspath(__file__))
 	logfile= "msfenum.log"
         logging.basicConfig(filename=logfile, level=logging.DEBUG)
         log = logging.getLogger()
@@ -192,10 +188,10 @@ if __name__ == '__main__':
         ascii()
 
 	# Load config with default settings
-	config = loadConfig()
+	config = loadConfig(currentPath)
 
 	# Define variables
-	logsfolder = config.get('logsfolder')
+	logsfolder = "{}/{}".format(currentPath, config.get('logsfolder'))
 	projectName = None
 	targets = []
 	threads = None
@@ -226,13 +222,13 @@ if __name__ == '__main__':
 
 	# Create current run directory
 	try:
-		currentDir = logsfolder + '/' + projectName
+		currentDir = "{}/{}".format(logsfolder, projectName)
 		makedirs(currentDir)
-		log.warn('Saving msfenum logs in: ' + currentDir)
+		log.warn('Saving msfenum logs in: {}'.format(currentDir))
 	except:
 		exit('\033[0;31m\033[1m[!]\033[0m Could not create directory structure')
 
 	# Run the script
-	generateRcs(targets, threads, projectName, config)
-	runRcs(projectName, config)
-	getSuccessful(projectName, config)
+	generateRcs(targets, threads, projectName, config, currentPath, logsfolder)
+	runRcs(projectName, config, logsfolder)
+	getSuccessful(projectName, config, logsfolder)
