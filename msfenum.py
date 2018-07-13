@@ -98,8 +98,10 @@ def getSuccessful(projectName, config, logsfolder):
 			log.warning('- Module: {}'.format(f.rsplit('.', 1)[0]))
 			result = system('grep [+] {}/{}/{}'.format(logsfolder, projectName, f))
 
-			if result == 256 or result == 0: # No results end in a 256 or 0 print
+			if result == 256: # No results end in a 256
 				log.debug("No results")
+			elif result == 0: # All results printed end in 0
+				pass
 			else:
 				log.critical(re.sub(r"\[\+]", "\033[0;32m\033[1m[+]\033[0m",result))
 
