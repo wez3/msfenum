@@ -1,4 +1,5 @@
 set RHOSTS %IP%
+set CreateSession false
 set username admin
 set password admin
 run
