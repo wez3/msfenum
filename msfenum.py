@@ -65,9 +65,9 @@ def generateRcs(targets, threads, projectName, config, currentPath, logsfolder):
 				customSettings = False
 			if run == True:
 				if (path.isfile(path.join(modulesfolder,modulename))):
-					rcfile += "setg threads {}\n".format(str(threads))
 					rcfile += "{}{}/{}.log\n".format(premodule, projectName, modulename)
 					rcfile += "use {}\n".format(module)
+					rcfile += "setg threads {}\n".format(str(threads))
 					if customSettings == True:
 						for key, value in settings[module].iteritems():
 							rcfile += "set {} {}\n".format(key, value)
